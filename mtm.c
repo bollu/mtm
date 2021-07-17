@@ -1062,6 +1062,11 @@ handlechar(int r, int k) /* Handle a single input character. */
     DO(false, SCROLLUP && INSCR,   scrollback(n))
     DO(false, SCROLLDOWN && INSCR, scrollforward(n))
     DO(false, RECENTER && INSCR,   scrollbottom(n))
+
+    DO(false, SCROLLUP,   scrollback(n))
+    DO(false, SCROLLDOWN, scrollforward(n))
+    DO(false, RECENTER,   scrollbottom(n))
+
     DO(false, CODE(KEY_ENTER),     SEND(n, n->lnm? "\r\n" : "\r"); SB)
     DO(false, CODE(KEY_UP),        sendarrow(n, "A"); SB);
     DO(false, CODE(KEY_DOWN),      sendarrow(n, "B"); SB);

@@ -30,38 +30,42 @@
  * that this number be at least as large as the largest terminal you
  * expect to use is tall.
  */
-#define SCROLLBACK 1000
+#define SCROLLBACK 10000
 
 /* The default command prefix key, when modified by cntrl.
  * This can be changed at runtime using the '-c' flag.
  */
-#define COMMAND_KEY 'g'
+#define COMMAND_KEY 'a'
 
 /* The change focus keys. */
 #define MOVE_UP         CODE(KEY_UP)
 #define MOVE_DOWN       CODE(KEY_DOWN)
-#define MOVE_RIGHT      CODE(KEY_RIGHT)
-#define MOVE_LEFT       CODE(KEY_LEFT)
+#define MOVE_RIGHT      KEY(L'l')
+#define MOVE_LEFT       KEY(L'h')
 #define MOVE_OTHER      KEY(L'o')
 
 /* The split terminal keys. */
-#define HSPLIT KEY(L'h')
-#define VSPLIT KEY(L'v')
+#define HSPLIT KEY(L'|')
+#define VSPLIT KEY(L'-')
 
 /* The delete terminal key. */
 #define DELETE_NODE KEY(L'w')
 
 /* The force redraw key. */
-#define REDRAW KEY(L'l')
+#define REDRAW KEY(L'r')
 
 /* The scrollback keys. */
-#define SCROLLUP CODE(KEY_PPAGE)
-#define SCROLLDOWN CODE(KEY_NPAGE)
-#define RECENTER CODE(KEY_END)
+// #define SCROLLUP CODE(KEY_LEFT)
+// #define SCROLLDOWN CODE(KEY_RIGHT)
+
+#define SCROLLUP KEY(L'k')
+#define SCROLLDOWN KEY(L'j')
+
+#define RECENTER KEY(L'q')
 
 /* The path for the wide-character curses library. */
 #ifndef NCURSESW_INCLUDE_H
-    #if defined(__APPLE__) || !defined(__linux__) || defined(__FreeBSD__) || defined(__OpenBSD__)
+    #if 1 || defined(__APPLE__) || !defined(__linux__) || defined(__FreeBSD__) || defined(__OpenBSD__)
         #define NCURSESW_INCLUDE_H <curses.h>
     #else
         #define NCURSESW_INCLUDE_H <ncursesw/curses.h>
