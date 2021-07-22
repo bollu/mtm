@@ -13,6 +13,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+#include <assert.h>
 #include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
@@ -1139,11 +1140,18 @@ run(void) /* Run MTM. */
 }
 
 int
-main(int argc, char **argv)
-{
+main(int argc, char **argv) {
+
+    if(getenv("MTM")) {
+        assert(false && "attempting to nest MTM instances. Killing MTM before this can happen");
+        return 1;
+    };
+
     FD_SET(STDIN_FILENO, &fds);
     setlocale(LC_ALL, "");
     signal(SIGCHLD, SIG_IGN); /* automatically reap children */
+
+
 
     int c = 0;
     while ((c = getopt(argc, argv, "c:T:t:")) != -1) switch (c){
