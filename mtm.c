@@ -69,6 +69,7 @@ struct NODE{
 };
 
 /*** GLOBALS AND PROTOTYPES */
+static const int STATUSBAR_H = 3;
 static bool g_scrolling = false;
 static WINDOW *g_win_statusbar = NULL;
 static NODE *root, *focused, *lastfocused = NULL;
@@ -862,7 +863,7 @@ replacechild(NODE *n, NODE *c1, NODE *c2) /* Replace c1 of n with c2. */
     c2->p = n;
     if (!n){
         root = c2;
-        reshape(c2, 0, 0, LINES, COLS);
+        reshape(c2, 0, 0, LINES-STATUSBAR_H, COLS);
     } else if (n->c1 == c1)
         n->c1 = c2;
     else if (n->c2 == c1)
@@ -1058,7 +1059,7 @@ handlechar(int r, int k) /* Handle a single input character. */
         if (s == cmd && (t)) { a ; cmd = false; return true; }
 
     DO(cmd,   KERR(k),             return false)
-    DO(cmd,   CODE(KEY_RESIZE),    reshape(root, 0, 0, LINES, COLS); SB)
+    DO(cmd,   CODE(KEY_RESIZE),    reshape(root, 0, 0, LINES-STATUSBAR_H, COLS); SB)
     DO(false, KEY(commandkey),     return cmd = true)
     DO(false, KEY(0),              SENDN(n, "\000", 1); SB)
     DO(false, !g_scrolling & KEY(L'\n'),          SEND(n, "\n"); SB)
@@ -1185,12 +1186,12 @@ main(int argc, char **argv) {
     use_default_colors();
     start_pairs();
 
-    root = newview(NULL, 0, 0, LINES-3, COLS);
+    root = newview(NULL, 0, 0, LINES-STATUSBAR_H, COLS);
 
     if (!root)
         quit(EXIT_FAILURE, "could not open root window");
 
-    g_win_statusbar = newwin(/*height=*/3, /*width=*/COLS, /*y=*/LINES-3, /*x=*/0);
+    g_win_statusbar = newwin(/*height=*/STATUSBAR_H, /*width=*/COLS, /*y=*/LINES-STATUSBAR_H, /*x=*/0);
     draw_statusbar();
 
     focus(root);
