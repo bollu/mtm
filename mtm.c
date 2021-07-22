@@ -69,6 +69,8 @@ struct NODE{
 };
 
 /*** GLOBALS AND PROTOTYPES */
+static bool g_scrolling = false;
+static WINDOW *g_win_statusbar = NULL;
 static NODE *root, *focused, *lastfocused = NULL;
 static int commandkey = CTL(COMMAND_KEY), nfds = 1; /* stdin */
 static fd_set fds;
@@ -77,6 +79,7 @@ static char iobuf[BUFSIZ];
 static void setupevents(NODE *n);
 static void reshape(NODE *n, int y, int x, int h, int w);
 static void draw(NODE *n);
+static void draw_statusbar();
 static void reshapechildren(NODE *n);
 static const char *term = NULL;
 static void freenode(NODE *n, bool recursive);
@@ -1045,7 +1048,6 @@ handlechar(int r, int k) /* Handle a single input character. */
 {
     const char cmdstr[] = {commandkey, 0};
     static bool cmd = false;
-    static bool scroll = false;
     NODE *n = focused;
     #define KERR(i) (r == ERR && (i) == k)
     #define KEY(i)  (r == OK  && (i) == k)
@@ -1059,11 +1061,11 @@ handlechar(int r, int k) /* Handle a single input character. */
     DO(cmd,   CODE(KEY_RESIZE),    reshape(root, 0, 0, LINES, COLS); SB)
     DO(false, KEY(commandkey),     return cmd = true)
     DO(false, KEY(0),              SENDN(n, "\000", 1); SB)
-    DO(false, !scroll & KEY(L'\n'),          SEND(n, "\n"); SB)
-    DO(false, !scroll & KEY(L'\r'),          SEND(n, n->lnm? "\r\n" : "\r"); SB)
-    DO(false, SCROLLUP && scroll,   scrollback(n))
-    DO(false, SCROLLDOWN && scroll, scrollforward(n))
-    DO(false, RECENTER && scroll,   scrollbottom(n); scroll=false)
+    DO(false, !g_scrolling & KEY(L'\n'),          SEND(n, "\n"); SB)
+    DO(false, !g_scrolling & KEY(L'\r'),          SEND(n, n->lnm? "\r\n" : "\r"); SB)
+    DO(false, SCROLLUP && g_scrolling,   scrollback(n))
+    DO(false, SCROLLDOWN && g_scrolling, scrollforward(n))
+    DO(false, RECENTER && g_scrolling,   scrollbottom(n); g_scrolling=false)
 
     // DO(false, SCROLLUP,   scrollback(n))
     // DO(false, SCROLLDOWN, scrollforward(n))
@@ -1102,13 +1104,13 @@ handlechar(int r, int k) /* Handle a single input character. */
     DO(true,  HSPLIT,              split(n, HORIZONTAL))
     // DO(true,  VSPLIT,              split(n, VERTICAL))
     DO(true,  DELETE_NODE,         deletenode(n))
-    DO(true,  REDRAW,              touchwin(stdscr); draw(root); redrawwin(stdscr))
-    DO(true,  SCROLLUP,            scrollback(n); scroll=true;)
-    DO(true,  SCROLLDOWN,          scrollforward(n); scroll=true;)
-    DO(true,  RECENTER,            scrollbottom(n); scroll=false;)
+    DO(true,  REDRAW,              touchwin(stdscr); draw_statusbar(); draw(root); redrawwin(stdscr))
+    DO(true,  SCROLLUP,            scrollback(n); g_scrolling=true;)
+    DO(true,  SCROLLDOWN,          scrollforward(n); g_scrolling=true;)
+    DO(true,  RECENTER,            scrollbottom(n); g_scrolling=false;)
     DO(true,  KEY(commandkey),     SENDN(n, cmdstr, 1));
 
-    if (scroll) { return cmd=false, true; }
+    if (g_scrolling) { return cmd=false, true; }
     char c[MB_LEN_MAX + 1] = {0};
     if (wctomb(c, k) > 0){
         scrollbottom(n);
@@ -1131,12 +1133,24 @@ run(void) /* Run MTM. */
             r = wget_wch(focused->s->win, &w);
         getinput(root, &sfds);
 
+
         draw(root);
         doupdate();
+        draw_statusbar();
+
         fixcursor();
         draw(focused);
         doupdate();
     }
+}
+
+
+void draw_statusbar() {
+    assert(g_win_statusbar);
+    wclear(g_win_statusbar);
+    box(g_win_statusbar, 0 , 0);
+    mvwprintw(g_win_statusbar, /*y=*/1, /*x=*/1, g_scrolling ? "SCROLLING" : "INSERT");
+    wrefresh(g_win_statusbar);
 }
 
 int
@@ -1171,9 +1185,14 @@ main(int argc, char **argv) {
     use_default_colors();
     start_pairs();
 
-    root = newview(NULL, 0, 0, LINES, COLS);
+    root = newview(NULL, 0, 0, LINES-3, COLS);
+
     if (!root)
         quit(EXIT_FAILURE, "could not open root window");
+
+    g_win_statusbar = newwin(/*height=*/3, /*width=*/COLS, /*y=*/LINES-3, /*x=*/0);
+    draw_statusbar();
+
     focus(root);
     draw(root);
     wnoutrefresh(stdscr);
