@@ -1044,6 +1044,7 @@ handlechar(int r, int k) /* Handle a single input character. */
 {
     const char cmdstr[] = {commandkey, 0};
     static bool cmd = false;
+    static bool scroll = false;
     NODE *n = focused;
     #define KERR(i) (r == ERR && (i) == k)
     #define KEY(i)  (r == OK  && (i) == k)
@@ -1057,22 +1058,22 @@ handlechar(int r, int k) /* Handle a single input character. */
     DO(cmd,   CODE(KEY_RESIZE),    reshape(root, 0, 0, LINES, COLS); SB)
     DO(false, KEY(commandkey),     return cmd = true)
     DO(false, KEY(0),              SENDN(n, "\000", 1); SB)
-    DO(false, KEY(L'\n'),          SEND(n, "\n"); SB)
-    DO(false, KEY(L'\r'),          SEND(n, n->lnm? "\r\n" : "\r"); SB)
-    DO(false, SCROLLUP && INSCR,   scrollback(n))
-    DO(false, SCROLLDOWN && INSCR, scrollforward(n))
-    DO(false, RECENTER && INSCR,   scrollbottom(n))
+    DO(false, !scroll & KEY(L'\n'),          SEND(n, "\n"); SB)
+    DO(false, !scroll & KEY(L'\r'),          SEND(n, n->lnm? "\r\n" : "\r"); SB)
+    DO(false, SCROLLUP && scroll,   scrollback(n))
+    DO(false, SCROLLDOWN && scroll, scrollforward(n))
+    DO(false, RECENTER && scroll,   scrollbottom(n); scroll=false)
 
-    DO(false, SCROLLUP,   scrollback(n))
-    DO(false, SCROLLDOWN, scrollforward(n))
-    DO(false, RECENTER,   scrollbottom(n))
+    // DO(false, SCROLLUP,   scrollback(n))
+    // DO(false, SCROLLDOWN, scrollforward(n))
+    // DO(false, RECENTER,   scrollbottom(n))
 
     DO(false, CODE(KEY_ENTER),     SEND(n, n->lnm? "\r\n" : "\r"); SB)
     DO(false, CODE(KEY_UP),        sendarrow(n, "A"); SB);
     DO(false, CODE(KEY_DOWN),      sendarrow(n, "B"); SB);
     DO(false, CODE(KEY_RIGHT),     sendarrow(n, "C"); SB);
     DO(false, CODE(KEY_LEFT),      sendarrow(n, "D"); SB);
-    DO(false, CODE(KEY_HOME),      SEND(n, "\033[1~"); SB)
+    DO(false, CODE(KEY_HOME),      SEND(n, "\032[1~"); SB)
     DO(false, CODE(KEY_END),       SEND(n, "\033[4~"); SB)
     DO(false, CODE(KEY_PPAGE),     SEND(n, "\033[5~"); SB)
     DO(false, CODE(KEY_NPAGE),     SEND(n, "\033[6~"); SB)
@@ -1098,13 +1099,15 @@ handlechar(int r, int k) /* Handle a single input character. */
     DO(true,  MOVE_RIGHT,          focus(findnode(root, RIGHT(n))))
     DO(true,  MOVE_OTHER,          focus(lastfocused))
     DO(true,  HSPLIT,              split(n, HORIZONTAL))
-    DO(true,  VSPLIT,              split(n, VERTICAL))
+    // DO(true,  VSPLIT,              split(n, VERTICAL))
     DO(true,  DELETE_NODE,         deletenode(n))
     DO(true,  REDRAW,              touchwin(stdscr); draw(root); redrawwin(stdscr))
-    DO(true,  SCROLLUP,            scrollback(n))
-    DO(true,  SCROLLDOWN,          scrollforward(n))
-    DO(true,  RECENTER,            scrollbottom(n))
+    DO(true,  SCROLLUP,            scrollback(n); scroll=true;)
+    DO(true,  SCROLLDOWN,          scrollforward(n); scroll=true;)
+    DO(true,  RECENTER,            scrollbottom(n); scroll=false;)
     DO(true,  KEY(commandkey),     SENDN(n, cmdstr, 1));
+
+    if (scroll) { return cmd=false, true; }
     char c[MB_LEN_MAX + 1] = {0};
     if (wctomb(c, k) > 0){
         scrollbottom(n);
@@ -1165,6 +1168,7 @@ main(int argc, char **argv)
         quit(EXIT_FAILURE, "could not open root window");
     focus(root);
     draw(root);
+    wnoutrefresh(stdscr);
     run();
 
     quit(EXIT_SUCCESS, NULL);
