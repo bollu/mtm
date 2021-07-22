@@ -35,7 +35,7 @@
 /* The default command prefix key, when modified by cntrl.
  * This can be changed at runtime using the '-c' flag.
  */
-#define COMMAND_KEY 'a'
+#define COMMAND_KEY 'q'
 
 /* The change focus keys. */
 #define MOVE_UP         CODE(KEY_UP)
@@ -62,7 +62,8 @@
 #define SCROLLUP KEY(L'k')
 #define SCROLLDOWN KEY(L'j')
 
-#define RECENTER KEY(L'q')
+// #define RECENTER KEY(L'q')
+#define RECENTER CTRL(L'q')
 
 /* The path for the wide-character curses library. */
 #ifndef NCURSESW_INCLUDE_H
